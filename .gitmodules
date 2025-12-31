@@ -1,0 +1,3 @@
+[submodule "external/fizz"]
+	path = external/fizz
+	url = https://github.com/dsch7705/fizz.git
