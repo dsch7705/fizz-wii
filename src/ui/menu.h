@@ -46,7 +46,7 @@ class Menu {
   void toggleShow() { m_isShown = !m_isShown; }
 
   void setStyle(MenuStyle style) { m_style = style; }
-  MenuStyle style() const { return m_style; }
+  MenuStyle& style() { return m_style; }
 
   void addItem(const std::string& text, MenuFunc func);
 

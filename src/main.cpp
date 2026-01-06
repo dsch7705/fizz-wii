@@ -86,12 +86,9 @@ int main(int argc, char** argv)
   };
 
   Menu menu;
-  MenuStyle menuStyle = menu.style();
+  MenuStyle& menuStyle = menu.style();
   menuStyle.font = font;
   menuStyle.fontSize = 18;
-  menuStyle.backgroundColor = 0x0000FFFF;
-  menuStyle.fontColor = 0xFFFFFFFF;
-  menu.setStyle(menuStyle);
 
   pluh p;
   menu.addItem("pluh", [&] { p.go(); });
