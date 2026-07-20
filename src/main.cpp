@@ -17,11 +17,11 @@ u32 col_to_u32(Draw::Color c)
 {
   return (c.r << 24) | (c.g << 16) | (c.b << 8) | c.a;
 }
-void grr_circle(const DVec2& center, float radius, Draw::Color color)
+void grr_circle(const Vec2& center, float radius, Draw::Color color)
 {
   GRRLIB_Circle(center.x, center.y, radius, col_to_u32(color), 1);
 }
-void grr_line(const DVec2& p0, const DVec2& p1, Draw::Color color)
+void grr_line(const Vec2& p0, const Vec2& p1, Draw::Color color)
 {
   GRRLIB_Line(p0.x, p0.y, p1.x, p1.y, col_to_u32(color));
 }
@@ -30,27 +30,27 @@ void resetCloth(System& sys, std::vector<int>& cIds)
 {
   constexpr int gW = 10;
   constexpr int gH = 5;
-  constexpr double spacing = 0.8;
-  constexpr double clothK = 1500.0;
-  constexpr double clothD = 10.0;
+  constexpr float spacing = 0.8;
+  constexpr float clothK = 1500.0;
+  constexpr float clothD = 10.0;
 
   sys.clear();
   cIds.clear();
 
-  std::vector<Body*> lastRow;
+  std::vector<ID> lastRow;
   for (int y = 0; y < gH; ++y) {
-    std::vector<Body*> row;
+    std::vector<ID> row;
     for (int x = 0; x < gW; ++x) {
-      Body* b = sys.createBody({(double)x * spacing + 1.0, (double)y * spacing + 1.0}, 0.1, (y == 0));
+      ID b = sys.createBody({x * spacing + 1.0f, y * spacing + 1.0f}, 0.1f, (y == 0));
       if (x > 0) {
-        Constraint* c = sys.createConstraint<SpringConstraint>(b, row[x - 1], clothK, clothD);
-        cIds.push_back(c->id());
+        ID c = sys.createConstraint<SpringConstraint>(b, row[x - 1], clothK, clothD);
+        cIds.push_back(c);
       }
       row.push_back(b);
 
       if (x < lastRow.size()) {
-        Constraint* c = sys.createConstraint<SpringConstraint>(b, lastRow[x], clothK, clothD);
-        cIds.push_back(c->id());
+        ID c = sys.createConstraint<SpringConstraint>(b, lastRow[x], clothK, clothD);
+        cIds.push_back(c);
       }
     }
     lastRow = std::move(row);
@@ -71,10 +71,11 @@ int main(int argc, char** argv)
   GRRLIB_ttfFont* font = GRRLIB_LoadTTF(NotoSansMono_Regular_ttf, NotoSansMono_Regular_ttf_len);
 
   u64 lastTime = gettime();
-  double deltaTime = 0.0;
+  float deltaTime = 0.0;
 
-  Draw::setCircleFunc(grr_circle);
-  Draw::setLineFunc(grr_line);
+  Draw::setCircleCallback(grr_circle);
+  Draw::setLineCallback(grr_line);
+  Draw::getTransform().scale = 25;
 
   System sys;
   std::vector<int> cIds;
@@ -107,7 +108,7 @@ int main(int argc, char** argv)
     // Delta time calculation
     u64 currentTime = gettime();
     u64 diff = currentTime - lastTime;
-    deltaTime = (double)diff / (TB_TIMER_CLOCK * 1000);
+    deltaTime = (float)diff / (TB_TIMER_CLOCK * 1000);
     lastTime = currentTime;
 
     sys.update(deltaTime);

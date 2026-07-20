@@ -1,6 +1,6 @@
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set(WII_PORTLIBS /opt/devkitpro/portlibs/wii)
+set(WII_PORTLIBS $ENV{DEVKITPRO}/portlibs/wii)
 
 add_executable(fizz-wii main.cpp
   ui/menu.cpp)
