@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<app version="1">
+	<name>Fizz Wii</name>
+	<version>1.0.0</version>
+	<release_date>20260802000000</release_date>
+	<coder>Dylan Schooner</coder>
+	<short_description>An interactive physics toy</short_description>
+	<long_description>Fizz Wii is an interactive front end for the `fizz` physics library
+</long_description>
+</app>
