@@ -5,13 +5,19 @@
 #include <stdio.h>
 #include <wiiuse/wpad.h>
 
-void Menu::draw() const
+void Menu::show(bool s)
 {
-  if (!m_isShown)
+  m_currentIdx = 0;
+  m_show = s;
+}
+
+void Menu::draw(uint16_t screenW, uint16_t screenH) const
+{
+  if (!m_show)
     return;
 
-  float innerX = 640 / 2.f - static_cast<f32>(m_width) / 2.f;
-  float innerY = 480 / 2.f - static_cast<f32>(m_height) / 2.f;
+  float innerX = screenW / 2.f - static_cast<f32>(m_width) / 2.f;
+  float innerY = screenH / 2.f - static_cast<f32>(m_height) / 2.f;
 
   // Border rect
   GRRLIB_Rectangle(innerX - m_style.borderWidth, innerY - m_style.borderWidth, m_width + m_style.borderWidth * 2,
@@ -32,7 +38,7 @@ void Menu::draw() const
   }
 }
 
-void Menu::addItem(const std::string& text, MenuFunc func)
+void Menu::addItem(const std::string& text, MenuFunc func, void* data)
 {
   // Update height
   m_height += m_style.fontSize;
@@ -47,7 +53,7 @@ void Menu::addItem(const std::string& text, MenuFunc func)
     m_width = minWidth;
   }
 
-  m_items.emplace_back(text, func);
+  m_items.emplace_back(text, data, func);
 }
 
 void Menu::nextItem(int dir)
@@ -63,7 +69,7 @@ void Menu::nextItem(int dir)
 
 void Menu::update(u32& wiimoteButtons)
 {
-  if (!m_isShown)
+  if (!m_show)
     return;
 
   u32 toConsume = 0;
@@ -77,7 +83,8 @@ void Menu::update(u32& wiimoteButtons)
   }
 
   if (wiimoteButtons & WPAD_BUTTON_A) {
-    m_items.at(m_currentIdx).m_func();
+    MenuItem& item = m_items.at(m_currentIdx);
+    item.m_func(item.data);
     toConsume |= WPAD_BUTTON_A;
   }
 

@@ -5,7 +5,7 @@
 
 #include "font.c"
 
-#include "ui/menu.h"
+#include "menu.h"
 
 #include "fizz/Draw.h"
 #include "fizz/System.h"
@@ -28,9 +28,11 @@ void grr_line(const Vec2& p0, const Vec2& p1, Draw::Color color)
 
 void resetCloth(System& sys, std::vector<int>& cIds)
 {
-  constexpr int gW = 10;
-  constexpr int gH = 5;
+  constexpr int gW = 15;
+  constexpr int gH = 10;
   constexpr float spacing = 0.8;
+  constexpr Vec2 offset{(-gW * spacing / 2.f) + spacing / 2.f, -gH * spacing * 0.8};
+
   constexpr float clothK = 1500.0;
   constexpr float clothD = 10.0;
 
@@ -41,7 +43,7 @@ void resetCloth(System& sys, std::vector<int>& cIds)
   for (int y = 0; y < gH; ++y) {
     std::vector<ID> row;
     for (int x = 0; x < gW; ++x) {
-      ID b = sys.createBody({x * spacing + 1.0f, y * spacing + 1.0f}, 0.1f, (y == 0));
+      ID b = sys.createBody({x * spacing + offset.x, y * spacing + offset.y}, 0.1f, (y == 0));
       if (x > 0) {
         ID c = sys.createConstraint<SpringConstraint>(b, row[x - 1], clothK, clothD);
         cIds.push_back(c);
@@ -62,7 +64,10 @@ int main(int argc, char** argv)
   srand(gettime());
 
   GRRLIB_Init();
-  GRRLIB_SetBackgroundColour(255, 255, 255, 255);
+  GRRLIB_SetBackgroundColour(0, 0, 0, 255);
+
+  u16 screenW = rmode->fbWidth;
+  u16 screenH = rmode->efbHeight;
 
   WPAD_Init();
   WPAD_SetDataFormat(WPAD_CHAN_0, WPAD_FMT_BTNS_ACC_IR);
@@ -75,34 +80,73 @@ int main(int argc, char** argv)
 
   Draw::setCircleCallback(grr_circle);
   Draw::setLineCallback(grr_line);
-  Draw::getTransform().scale = 25;
 
-  System sys;
-  std::vector<int> cIds;
-  resetCloth(sys, cIds);
+  auto& transform = Draw::getTransform();
+  transform.scale = 30;
+  transform.offset = Vec2(screenW, screenH) / transform.scale / 2.f;
 
-  // Menu
-  struct pluh {
-    void go() { SYS_Report("PLUH\n"); }
+  System* currentSystem = nullptr;
+  Menu* currentMenu = nullptr;
+  auto setCurrentSystem = [&](void* system) {
+    assert(system != nullptr);
+
+    currentSystem = static_cast<System*>(system);
+
+    if (currentMenu)
+      currentMenu->show(false);
   };
 
-  Menu menu;
-  MenuStyle& menuStyle = menu.style();
+  System cloth;
+  setCurrentSystem(&cloth);
+  std::vector<int> cIds;
+  resetCloth(cloth, cIds);
+
+  System pendulum;
+  {
+    ID anchor = pendulum.createBody({0.f, 0.f}, 0.2, true);
+    ID mass = pendulum.createBody({7.5f, 0.f}, 0.2);
+    pendulum.createConstraint<DistanceConstraint>(anchor, mass);
+  }
+
+  System double_pendulum;
+  {
+    ID anchor = double_pendulum.createBody({0.f, 0.f}, 0.2, true);
+    ID mass0 = double_pendulum.createBody({0.f, -3.75f}, 0.2);
+    ID mass1 = double_pendulum.createBody({3.75f, -3.75f}, 0.2);
+
+    double_pendulum.createConstraint<DistanceConstraint>(anchor, mass0);
+    double_pendulum.createConstraint<DistanceConstraint>(mass0, mass1);
+  }
+
+  // Menu
+  auto setCurrentMenu = [&](void* menu) {
+    assert(menu != nullptr);
+    currentMenu = static_cast<Menu*>(menu);
+    currentMenu->show(true);
+  };
+
+  Menu mainMenu{};
+  MenuStyle& menuStyle = mainMenu.style();
+  menuStyle.backgroundColor = 0x000000FF;
+  menuStyle.borderColor = 0xFFFFFFFF;
+  menuStyle.fontColor = menuStyle.borderColor;
   menuStyle.font = font;
   menuStyle.fontSize = 18;
 
-  pluh p;
-  menu.addItem("pluh", [&] { p.go(); });
+  setCurrentMenu(&mainMenu);
+  mainMenu.show(false);
 
-  auto action = [] { SYS_Report("Click\n"); };
-  menu.addItem("Menu Item", action);
-  menu.addItem("Here's another", action);
-  menu.addItem("Testing", action);
-  menu.addItem("More testing", action);
-  menu.addItem("The items seem to fit well", action);
+  Menu sceneMenu{};
+  sceneMenu.style() = menuStyle;
+  sceneMenu.addItem("Goo", setCurrentSystem, &cloth);
+  sceneMenu.addItem("Pendulum", setCurrentSystem, &pendulum);
+  sceneMenu.addItem("Double pendulum", setCurrentSystem, &double_pendulum);
+  sceneMenu.addItem("Back", setCurrentMenu, &mainMenu);
+
+  mainMenu.addItem("Load scene", setCurrentMenu, &sceneMenu);
 
   bool running = true;
-  menu.addItem("Exit", [&] { running = false; });
+  mainMenu.addItem("Quit", [&](void*) { running = false; });
 
   while (running) {
     // Delta time calculation
@@ -111,34 +155,34 @@ int main(int argc, char** argv)
     deltaTime = (float)diff / (TB_TIMER_CLOCK * 1000);
     lastTime = currentTime;
 
-    sys.update(deltaTime);
+    currentSystem->update(deltaTime);
 
     // WPAD Buttons
     WPAD_ScanPads();
     u32 buttonsDown = WPAD_ButtonsDown(0);
     if (buttonsDown & WPAD_BUTTON_HOME) {
-      menu.toggleShow();
+      currentMenu->toggleShow();
     }
-    menu.update(buttonsDown);
+    currentMenu->update(buttonsDown);
 
     if ((buttonsDown & WPAD_BUTTON_A) && !cIds.empty()) {
       int idIdx = rand() % cIds.size();
       int id = cIds.at(idIdx);
 
-      sys.removeConstraint(id);
+      cloth.removeConstraint(id);
       cIds.erase(cIds.begin() + idIdx);
     }
 
     if (buttonsDown & WPAD_BUTTON_B) {
-      resetCloth(sys, cIds);
+      resetCloth(cloth, cIds);
     }
 
     // WPAD Data
-    WPADData* wpData = WPAD_Data(0);
-    grr_circle({wpData->ir.x, wpData->ir.y}, 5.f, {255, 0, 0, 255});
+    // WPADData* wpData = WPAD_Data(0);
+    // grr_circle({wpData->ir.x, wpData->ir.y}, 5.f, {255, 0, 0, 255});
 
-    sys.draw({0, 0, 0, 255});
-    menu.draw();
+    currentSystem->draw({255, 255, 255, 255});
+    currentMenu->draw(screenW, screenH);
 
     GRRLIB_Render();
   }

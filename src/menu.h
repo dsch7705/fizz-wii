@@ -6,11 +6,12 @@
 #include <string>
 #include <vector>
 
-using MenuFunc = std::function<void()>;
+using MenuFunc = std::function<void(void* data)>;
 struct MenuItem {
-  MenuItem(const std::string& text, MenuFunc func) : text(text), m_func(func) {}
+  MenuItem(const std::string& text, void* data, MenuFunc func) : text(text), data(data), m_func(func) {}
 
   std::string text;
+  void* data;
 
  private:
   MenuFunc m_func;
@@ -40,27 +41,27 @@ class Menu {
  public:
   Menu() : m_style(kDefaultMenuStyle), m_width(0), m_height(0), m_currentIdx(0) {}
 
-  void draw() const;
+  void draw(uint16_t screenW, uint16_t screenH) const;
   void update(u32& wiimoteButtons);
-  void show(bool visible = true) { m_isShown = visible; }
-  void toggleShow() { m_isShown = !m_isShown; }
+  void show(bool s);
+  void toggleShow() { show(!m_show); }
 
   void setStyle(MenuStyle style) { m_style = style; }
   MenuStyle& style() { return m_style; }
 
-  void addItem(const std::string& text, MenuFunc func);
+  void addItem(const std::string& text, MenuFunc func = [](void*) {}, void* data = nullptr);
 
  private:
   void nextItem(int dir);
   static void consumeInput(u32& wiimoteButtons, u32 toConsume);
+
+  bool m_show;
 
   std::vector<MenuItem> m_items;
 
   MenuStyle m_style;
   u16 m_width;
   u16 m_height;
-
-  bool m_isShown;
 
   s8 m_currentIdx;
 };
