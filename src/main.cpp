@@ -118,6 +118,18 @@ int main(int argc, char** argv)
     double_pendulum.createConstraint<DistanceConstraint>(mass0, mass1);
   }
 
+  System triple_pendulum;
+  {
+    ID anchor = triple_pendulum.createBody({0.f, 0.f}, 0.2, true);
+    ID mass0 = triple_pendulum.createBody({0.f, -2.5f}, 0.2);
+    ID mass1 = triple_pendulum.createBody({2.5f, -2.5f}, 0.2);
+    ID mass2 = triple_pendulum.createBody({2.5f, 0.f}, 0.2);
+
+    triple_pendulum.createConstraint<DistanceConstraint>(anchor, mass0);
+    triple_pendulum.createConstraint<DistanceConstraint>(mass0, mass1);
+    triple_pendulum.createConstraint<DistanceConstraint>(mass1, mass2);
+  }
+
   // Menu
   auto setCurrentMenu = [&](void* menu) {
     assert(menu != nullptr);
@@ -141,6 +153,7 @@ int main(int argc, char** argv)
   sceneMenu.addItem("Goo", setCurrentSystem, &cloth);
   sceneMenu.addItem("Pendulum", setCurrentSystem, &pendulum);
   sceneMenu.addItem("Double pendulum", setCurrentSystem, &double_pendulum);
+  sceneMenu.addItem("Triple pendulum", setCurrentSystem, &triple_pendulum);
   sceneMenu.addItem("Back", setCurrentMenu, &mainMenu);
 
   mainMenu.addItem("Load scene", setCurrentMenu, &sceneMenu);
