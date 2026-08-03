@@ -7,7 +7,6 @@
 
 void Menu::show(bool s)
 {
-  m_currentIdx = 0;
   m_show = s;
 }
 
