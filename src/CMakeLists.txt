@@ -20,7 +20,7 @@ if(ELF2DOL)
     TARGET fizz-wii
     POST_BUILD
     COMMAND ${ELF2DOL} $<TARGET_FILE:fizz-wii> ${HOMEBREW_DIR}/boot.dol
-    COMMENT "Converting ELF to DOL format"
+    COMMENT "Copying boot.dol to homebrew directory"
   )
 
   add_custom_command(
@@ -30,6 +30,15 @@ if(ELF2DOL)
       "${CMAKE_SOURCE_DIR}/meta.xml"
       "${HOMEBREW_DIR}/meta.xml"
     COMMENT "Copying meta.xml to homebrew directory"
+  )
+
+  add_custom_command(
+    TARGET fizz-wii
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+      "${CMAKE_SOURCE_DIR}/icon.png"
+      "${HOMEBREW_DIR}/icon.png"
+    COMMENT "Copying icon.png to homebrew directory"
   )
 else()
   message(WARNING "elf2dol tool not found. Skipping DOL conversion.")
