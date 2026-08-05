@@ -3,7 +3,8 @@
 #include <stdlib.h>
 #include <wiiuse/wpad.h>
 
-#include "font.c"
+// #include "font.c"
+#include "font.h"
 
 #include "menu.h"
 
@@ -73,7 +74,7 @@ int main(int argc, char** argv)
   WPAD_SetDataFormat(WPAD_CHAN_0, WPAD_FMT_BTNS_ACC_IR);
 
   // Load font
-  GRRLIB_ttfFont* font = GRRLIB_LoadTTF(NotoSansMono_Regular_ttf, NotoSansMono_Regular_ttf_len);
+  GRRLIB_ttfFont* font = GRRLIB_LoadTTF(noto_sans_mono, sizeof(noto_sans_mono));
 
   u64 lastTime = gettime();
   float deltaTime = 0.0;
