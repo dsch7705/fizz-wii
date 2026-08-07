@@ -29,12 +29,13 @@ struct MenuStyle {
   u8 fontSize;
   u8 textPadding;
 };
-constexpr MenuStyle kDefaultMenuStyle{.backgroundColor = 0xF0F0F0FF,
-                                      .borderColor = 0x0F0F0FFF,
+
+constexpr MenuStyle kDefaultMenuStyle{.backgroundColor = 0x000000FF,
+                                      .borderColor = 0xFFFFFFFF,
                                       .selectedColor = 0x00FF00FF,
                                       .borderWidth = 4,
-                                      .fontColor = 0x000000FF,
-                                      .fontSize = 24,
+                                      .fontColor = 0xFFFFFFFF,
+                                      .fontSize = 18,
                                       .textPadding = 15};
 
 class Menu {
@@ -51,9 +52,14 @@ class Menu {
 
   void addItem(const std::string& text, MenuFunc func = [](void*) {}, void* data = nullptr);
 
+  static void setCurrentMenu(void* menu);  // `menu` is void* so the function matches the signature of MenuFunc
+  static Menu* currentMenu() { return m_currentMenu; }
+
  private:
   void nextItem(int dir);
   static void consumeInput(u32& wiimoteButtons, u32 toConsume);
+
+  inline static Menu* m_currentMenu = nullptr;
 
   bool m_show;
 

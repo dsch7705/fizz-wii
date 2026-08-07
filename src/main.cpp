@@ -56,42 +56,35 @@ int main(int argc, char** argv)
   transform.offset = Vec2(screenW, screenH) / transform.scale / 2.f;
 
   WiiSystem* currentSystem = nullptr;
-  Menu* currentMenu = nullptr;
   auto setCurrentSystem = [&](void* system) {
     assert(system != nullptr);
 
     currentSystem = static_cast<WiiSystem*>(system);
 
-    if (currentMenu)
-      currentMenu->show(false);
-  };
-
-  Goo goo(15, 10);
-  setCurrentSystem(&goo);
-
-  Pendulum pendulum(1, 7.5f);
-
-  Pendulum double_pendulum(2, 7.5f);
-
-  Worm worm(7.5f);
-
-  // Menu
-  auto setCurrentMenu = [&](void* menu) {
-    assert(menu != nullptr);
-    currentMenu = static_cast<Menu*>(menu);
-    currentMenu->show(true);
+    if (Menu::currentMenu())
+      Menu::currentMenu()->show(false);
   };
 
   Menu mainMenu{};
   MenuStyle& menuStyle = mainMenu.style();
-  menuStyle.backgroundColor = 0x000000FF;
-  menuStyle.borderColor = 0xFFFFFFFF;
-  menuStyle.fontColor = menuStyle.borderColor;
   menuStyle.font = font;
-  menuStyle.fontSize = 18;
 
-  setCurrentMenu(&mainMenu);
+  Menu::setCurrentMenu(&mainMenu);
   mainMenu.show(false);
+
+  // Systems
+  Goo goo(15, 10);
+  goo.setupInfoMenu(&mainMenu);
+  setCurrentSystem(&goo);
+
+  Pendulum pendulum(1, 7.5f);
+  pendulum.setupInfoMenu(&mainMenu);
+
+  Pendulum double_pendulum(2, 7.5f);
+  double_pendulum.setupInfoMenu(&mainMenu);
+
+  Worm worm(7.5f);
+  worm.setupInfoMenu(&mainMenu);
 
   Menu sceneMenu{};
   sceneMenu.style() = menuStyle;
@@ -99,9 +92,10 @@ int main(int argc, char** argv)
   sceneMenu.addItem("Pendulum", setCurrentSystem, &pendulum);
   sceneMenu.addItem("Double pendulum", setCurrentSystem, &double_pendulum);
   sceneMenu.addItem("Worm", setCurrentSystem, &worm);
-  sceneMenu.addItem("Back", setCurrentMenu, &mainMenu);
+  sceneMenu.addItem("Back", Menu::setCurrentMenu, &mainMenu);
 
-  mainMenu.addItem("Load scene", setCurrentMenu, &sceneMenu);
+  mainMenu.addItem("Load scene", Menu::setCurrentMenu, &sceneMenu);
+  mainMenu.addItem("Scene info", [&](void*) { Menu::setCurrentMenu(currentSystem->infoMenu()); });
 
   bool running = true;
   mainMenu.addItem("Quit", [&](void*) { running = false; });
@@ -122,19 +116,17 @@ int main(int argc, char** argv)
     WPADData* wpData = WPAD_Data(0);
 
     if (buttonsDown & WPAD_BUTTON_HOME) {
-      currentMenu->toggleShow();
+      Menu::currentMenu()->toggleShow();
     }
-    currentMenu->update(buttonsDown);
+    Menu::currentMenu()->update(buttonsDown);
 
     currentSystem->interact(buttonsDown, buttonsHeld, wpData);
 
-    // WPAD Data
     Vec2 cursor = Draw::screenToWorld({wpData->ir.x, wpData->ir.y});
-
     grr_circle({wpData->ir.x, wpData->ir.y}, 5.f, {255, 0, 0, 255});
 
     currentSystem->draw({255, 255, 255, 255});
-    currentMenu->draw(screenW, screenH);
+    Menu::currentMenu()->draw(screenW, screenH);
 
     GRRLIB_Render();
   }

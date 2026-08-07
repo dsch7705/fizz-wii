@@ -5,6 +5,12 @@
 #include <stdio.h>
 #include <wiiuse/wpad.h>
 
+void Menu::setCurrentMenu(void* menu)
+{
+  m_currentMenu = static_cast<Menu*>(menu);
+  m_currentMenu->show(true);
+}
+
 void Menu::show(bool s)
 {
   m_show = s;

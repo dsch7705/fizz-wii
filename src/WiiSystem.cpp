@@ -1,5 +1,12 @@
 #include "WiiSystem.h"
 
+void WiiSystem::setupInfoMenu(Menu* prevMenu)
+{
+  m_infoMenu.style() = prevMenu->style();
+  setupInfoMenu_impl();
+  m_infoMenu.addItem("Back", Menu::setCurrentMenu, prevMenu);
+}
+
 Goo::Goo(unsigned int w, unsigned int h) : m_w(w), m_h(h)
 {
   reset();
@@ -7,6 +14,12 @@ Goo::Goo(unsigned int w, unsigned int h) : m_w(w), m_h(h)
   m_mouse = createBody({0.f, 0.f}, 0.2f, true);
   Body& mouse = getBody(m_mouse);
   mouse.isVisible = false;
+}
+
+void Goo::setupInfoMenu_impl()
+{
+  m_infoMenu.addItem("Hold (B) and drag to slice");
+  m_infoMenu.addItem("Press (-) to reset");
 }
 
 void Goo::interact(uint32_t buttonsDown, uint32_t buttonsHeld, WPADData* wpadData)
@@ -101,6 +114,11 @@ Pendulum::Pendulum(unsigned int links, float length)
   Constraint& mouse_link = getConstraintBase(m_mouse_link);
   mouse_link.isVisible = false;
   mouse_link.isEnabled = false;
+}
+
+void Pendulum::setupInfoMenu_impl()
+{
+  m_infoMenu.addItem("Hold (B) to attract");
 }
 
 void Pendulum::interact(uint32_t buttonsDown, uint32_t buttonsHeld, WPADData* wpadData)
