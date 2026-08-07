@@ -114,18 +114,18 @@ int main(int argc, char** argv)
     u32 buttonsDown = WPAD_ButtonsDown(0);
     u32 buttonsHeld = WPAD_ButtonsHeld(0);
     WPADData* wpData = WPAD_Data(0);
+    currentSystem->interact(buttonsDown, buttonsHeld, wpData);
 
     if (buttonsDown & WPAD_BUTTON_HOME) {
       Menu::currentMenu()->toggleShow();
     }
     Menu::currentMenu()->update(buttonsDown);
 
-    currentSystem->interact(buttonsDown, buttonsHeld, wpData);
+    currentSystem->draw({255, 255, 255, 255});
 
     Vec2 cursor = Draw::screenToWorld({wpData->ir.x, wpData->ir.y});
     grr_circle({wpData->ir.x, wpData->ir.y}, 5.f, {255, 0, 0, 255});
 
-    currentSystem->draw({255, 255, 255, 255});
     Menu::currentMenu()->draw(screenW, screenH);
 
     GRRLIB_Render();
