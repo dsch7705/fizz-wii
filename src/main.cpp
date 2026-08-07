@@ -6,10 +6,12 @@
 // #include "font.c"
 #include "font.h"
 
-#include "menu.h"
+#include "Menu.h"
 
 #include "fizz/Draw.h"
 #include "fizz/System.h"
+
+#include "WiiSystem.h"
 
 #include "fizz/constraints/DistanceConstraint.h"
 #include "fizz/constraints/SpringConstraint.h"
@@ -25,39 +27,6 @@ void grr_circle(const Vec2& center, float radius, Draw::Color color)
 void grr_line(const Vec2& p0, const Vec2& p1, Draw::Color color)
 {
   GRRLIB_Line(p0.x, p0.y, p1.x, p1.y, col_to_u32(color));
-}
-
-void resetCloth(System& sys, std::vector<int>& cIds)
-{
-  constexpr int gW = 15;
-  constexpr int gH = 10;
-  constexpr float spacing = 0.8;
-  constexpr Vec2 offset{(-gW * spacing / 2.f) + spacing / 2.f, -gH * spacing * 0.8};
-
-  constexpr float clothK = 1500.0;
-  constexpr float clothD = 10.0;
-
-  sys.clear();
-  cIds.clear();
-
-  std::vector<ID> lastRow;
-  for (int y = 0; y < gH; ++y) {
-    std::vector<ID> row;
-    for (int x = 0; x < gW; ++x) {
-      ID b = sys.createBody({x * spacing + offset.x, y * spacing + offset.y}, 0.1f, (y == 0));
-      if (x > 0) {
-        ID c = sys.createConstraint<SpringConstraint>(b, row[x - 1], clothK, clothD);
-        cIds.push_back(c);
-      }
-      row.push_back(b);
-
-      if (x < lastRow.size()) {
-        ID c = sys.createConstraint<SpringConstraint>(b, lastRow[x], clothK, clothD);
-        cIds.push_back(c);
-      }
-    }
-    lastRow = std::move(row);
-  }
 }
 
 int main(int argc, char** argv)
@@ -86,50 +55,25 @@ int main(int argc, char** argv)
   transform.scale = 30;
   transform.offset = Vec2(screenW, screenH) / transform.scale / 2.f;
 
-  System* currentSystem = nullptr;
+  WiiSystem* currentSystem = nullptr;
   Menu* currentMenu = nullptr;
   auto setCurrentSystem = [&](void* system) {
     assert(system != nullptr);
 
-    currentSystem = static_cast<System*>(system);
+    currentSystem = static_cast<WiiSystem*>(system);
 
     if (currentMenu)
       currentMenu->show(false);
   };
 
-  System cloth;
-  setCurrentSystem(&cloth);
-  std::vector<int> cIds;
-  resetCloth(cloth, cIds);
+  Goo goo(15, 10);
+  setCurrentSystem(&goo);
 
-  System pendulum;
-  {
-    ID anchor = pendulum.createBody({0.f, 0.f}, 0.2, true);
-    ID mass = pendulum.createBody({7.5f, 0.f}, 0.2);
-    pendulum.createConstraint<DistanceConstraint>(anchor, mass);
-  }
+  Pendulum pendulum(1, 7.5f);
 
-  System double_pendulum;
-  {
-    ID anchor = double_pendulum.createBody({0.f, 0.f}, 0.2, true);
-    ID mass0 = double_pendulum.createBody({0.f, -3.75f}, 0.2);
-    ID mass1 = double_pendulum.createBody({3.75f, -3.75f}, 0.2);
+  Pendulum double_pendulum(2, 7.5f);
 
-    double_pendulum.createConstraint<DistanceConstraint>(anchor, mass0);
-    double_pendulum.createConstraint<DistanceConstraint>(mass0, mass1);
-  }
-
-  System triple_pendulum;
-  {
-    ID anchor = triple_pendulum.createBody({0.f, 0.f}, 0.2, true);
-    ID mass0 = triple_pendulum.createBody({0.f, -2.5f}, 0.2);
-    ID mass1 = triple_pendulum.createBody({2.5f, -2.5f}, 0.2);
-    ID mass2 = triple_pendulum.createBody({2.5f, 0.f}, 0.2);
-
-    triple_pendulum.createConstraint<DistanceConstraint>(anchor, mass0);
-    triple_pendulum.createConstraint<DistanceConstraint>(mass0, mass1);
-    triple_pendulum.createConstraint<DistanceConstraint>(mass1, mass2);
-  }
+  Worm worm(7.5f);
 
   // Menu
   auto setCurrentMenu = [&](void* menu) {
@@ -151,10 +95,10 @@ int main(int argc, char** argv)
 
   Menu sceneMenu{};
   sceneMenu.style() = menuStyle;
-  sceneMenu.addItem("Goo", setCurrentSystem, &cloth);
+  sceneMenu.addItem("Goo", setCurrentSystem, &goo);
   sceneMenu.addItem("Pendulum", setCurrentSystem, &pendulum);
   sceneMenu.addItem("Double pendulum", setCurrentSystem, &double_pendulum);
-  sceneMenu.addItem("Triple pendulum", setCurrentSystem, &triple_pendulum);
+  sceneMenu.addItem("Worm", setCurrentSystem, &worm);
   sceneMenu.addItem("Back", setCurrentMenu, &mainMenu);
 
   mainMenu.addItem("Load scene", setCurrentMenu, &sceneMenu);
@@ -174,26 +118,20 @@ int main(int argc, char** argv)
     // WPAD Buttons
     WPAD_ScanPads();
     u32 buttonsDown = WPAD_ButtonsDown(0);
+    u32 buttonsHeld = WPAD_ButtonsHeld(0);
+    WPADData* wpData = WPAD_Data(0);
+
     if (buttonsDown & WPAD_BUTTON_HOME) {
       currentMenu->toggleShow();
     }
     currentMenu->update(buttonsDown);
 
-    if ((buttonsDown & WPAD_BUTTON_A) && !cIds.empty()) {
-      int idIdx = rand() % cIds.size();
-      int id = cIds.at(idIdx);
-
-      cloth.removeConstraint(id);
-      cIds.erase(cIds.begin() + idIdx);
-    }
-
-    if (buttonsDown & WPAD_BUTTON_B) {
-      resetCloth(cloth, cIds);
-    }
+    currentSystem->interact(buttonsDown, buttonsHeld, wpData);
 
     // WPAD Data
-    // WPADData* wpData = WPAD_Data(0);
-    // grr_circle({wpData->ir.x, wpData->ir.y}, 5.f, {255, 0, 0, 255});
+    Vec2 cursor = Draw::screenToWorld({wpData->ir.x, wpData->ir.y});
+
+    grr_circle({wpData->ir.x, wpData->ir.y}, 5.f, {255, 0, 0, 255});
 
     currentSystem->draw({255, 255, 255, 255});
     currentMenu->draw(screenW, screenH);

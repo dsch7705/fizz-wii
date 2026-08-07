@@ -4,7 +4,8 @@ set(WII_PORTLIBS $ENV{DEVKITPRO}/portlibs/wii)
 
 add_executable(fizz-wii 
   main.cpp
-  menu.cpp
+  Menu.cpp
+  WiiSystem.cpp
 )
 target_include_directories(fizz-wii PRIVATE ${WII_PORTLIBS}/include)
 target_link_directories(fizz-wii PRIVATE ${WII_PORTLIBS}/lib)
